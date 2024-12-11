@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { addTask } from '../redux/taskSlice';
+import { addTask } from './redux/taskSlice';
 
 function TaskForm({ title, setTitle, about, setAbout }) {
     const dispatch = useDispatch();

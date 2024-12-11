@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import storage from '../storage.js';
+import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { deleteTask, updateTask, reorderTasks } from './redux/taskSlice';
 import TaskForm from './taskForm';
 import TodoItem from './ToDoItem';
 import EditModal from './editModal';
@@ -7,7 +8,9 @@ import ShareModal from './shareModal';
 import DeleteConfirmationModal from './deleteConfirmationModal';
 
 function TodoList() {
-    const [tasks, setTasks] = useState([]);
+    const tasks = useSelector((state) => state.tasks);
+    const dispatch = useDispatch();
+
     const [title, setTitle] = useState('');
     const [about, setAbout] = useState('');
     const [isEditModalOpen, setEditModalOpen] = useState(false);
@@ -15,31 +18,14 @@ function TodoList() {
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState(null);
     const [isDeleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
-    const [draggedTask, setDraggedTask] = useState(null);
-
-    useEffect(() => {
-        setTasks(storage.getTasks());
-    }, []);
-
-    const handleAddTask = () => {
-        if (title.trim() && about.trim()) {
-            const newTask = storage.addTask({ title: title.trim(), about: about.trim() });
-            setTasks([...tasks, newTask]);
-            setTitle('');
-            setAbout('');
-        } else {
-            alert('The fields should not be empty.');
-        }
-    };
 
     const handleDeleteTask = (taskId) => {
         setTaskToDelete(taskId);
-        setDeleteConfirmationOpen(true); 
+        setDeleteConfirmationOpen(true);
     };
 
     const confirmDeleteTask = () => {
-        storage.deleteTask(taskToDelete);
-        setTasks(tasks.filter((task) => task.id !== taskToDelete));
+        dispatch(deleteTask(taskToDelete));
         setDeleteConfirmationOpen(false);
     };
 
@@ -49,11 +35,10 @@ function TodoList() {
     };
 
     const handleSaveEdit = (newTitle, newAbout) => {
-        storage.updateTask(editTask.id, { title: newTitle, about: newAbout });
-        setTasks(tasks.map((task) => (task.id === editTask.id ? { ...task, title: newTitle, about: newAbout } : task)));
+        dispatch(updateTask({ id: editTask.id, updates: { title: newTitle, about: newAbout } }));
         setEditModalOpen(false);
     };
-// NEW
+
     const handleDragStart = (e, index) => {
         e.dataTransfer.setData('index', index);
     };
@@ -65,15 +50,14 @@ function TodoList() {
     const handleDrop = (e, index) => {
         const fromIndex = e.dataTransfer.getData('index');
         const updatedTasks = [...tasks];
-        const draggedTask = updatedTasks[fromIndex];
-        updatedTasks.splice(fromIndex, 1);
+        const [draggedTask] = updatedTasks.splice(fromIndex, 1);
         updatedTasks.splice(index, 0, draggedTask);
-        setTasks(updatedTasks);
+        dispatch(reorderTasks(updatedTasks));
     };
 
     return (
         <div className="createTaskContainer">
-            <TaskForm title={title} setTitle={setTitle} about={about} setAbout={setAbout} onAddTask={handleAddTask} />
+            <TaskForm title={title} setTitle={setTitle} about={about} setAbout={setAbout} />
             <div className="task-list">
                 {tasks.length === 0 ? (
                     <p className="task-list-none">No tasks</p>
